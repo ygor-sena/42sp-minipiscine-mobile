@@ -1,7 +1,11 @@
 ///import 'dart:js_interop';
+import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
 import 'tab/currently_tab.dart';
+import 'tab/currently_tab_api.dart';
 import 'tab/today_tab.dart';
 import 'tab/weekly_tab.dart';
 
@@ -37,16 +41,50 @@ class WeatherPages extends StatefulWidget {
 class _MyCustomFormState extends State<WeatherPages> {
   final myController = TextEditingController();
   String location = '';
-  String latitude = '';
-  String longitude = '';
+  double latitude = 0.0;
+  double longitude = 0.0;
+  String country = '';
+  String region = '';
   String geoLocationOutput = '';
 
-  late Future<CityRetrieve> futureCityRetrieve;
+  String? temperature;
+  String? weatherCode;
+  String? windSpeed;
 
-  @override
-  void initState() {
-    super.initState();
-    futureCityRetrieve = fetchCityRetrieve('Berlin');
+  Future<List<List<Object?>>> fetchCitySuggestions(String pattern) async {
+    final response = await http.get(Uri.parse(
+        'https://geocoding-api.open-meteo.com/v1/search?name=$pattern&count=10&language=en&format=json'));
+
+    if (response.statusCode == 200) {
+      final cityAPI = CityAPI.fromJson(jsonDecode(response.body));
+      return cityAPI.results!
+          .map((cityInfo) => [
+                cityInfo.name ?? '',
+                cityInfo.admin1 ?? '',
+                cityInfo.country ?? '',
+                cityInfo.longitude,
+                cityInfo.latitude,
+              ])
+          .toList();
+    } else {
+      return [];
+    }
+  }
+
+  Future<CurrentlyTabAPI?> fetchWeather(
+      double latitude, double longitude) async {
+    final url =
+        'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current_weather=true';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      return CurrentlyTabAPI.fromJson(jsonResponse);
+    } else {
+      // Handle error if necessary
+      return null;
+    }
   }
 
   @override
@@ -97,11 +135,13 @@ class _MyCustomFormState extends State<WeatherPages> {
     }
     await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
         .then((Position position) {
-      setState(() => {
-            longitude = position.longitude.toString(),
-            latitude = position.latitude.toString(),
-            geoLocationOutput = '$longitude $latitude'
-          });
+      setState(() =>
+
+          ///longitude = position.longitude.toString(),
+          ///latitude = position.latitude.toString(),
+          geoLocationOutput = longitude.toString() + latitude.toString());
+
+      ///geoLocationOutput = '$longitude.toString() $latitude.toString()',
     }).catchError((e) {
       debugPrint(e);
     });
@@ -125,8 +165,9 @@ class _MyCustomFormState extends State<WeatherPages> {
       setState(() {
         _getCurrentPosition();
         location = geoLocationOutput;
-        debugPrint(latitude);
-        debugPrint(longitude);
+
+        ///debugPrint(latitude);
+        ///debugPrint(longitude);
         debugPrint(location);
       });
     }
@@ -139,37 +180,42 @@ class _MyCustomFormState extends State<WeatherPages> {
           backgroundColor: Colors.amber,
           title: TypeAheadField(
             suggestionsCallback: (pattern) async {
-                if (pattern.isEmpty) {
-                  return [];
-                }
-
-                final cityRetrieve = await fetchCityRetrieve(pattern);
-                final List<List<String>> infoCities = cityRetrieve.extractCityNames();
-
-              return infoCities.map((cityInfo) {
-                final cityName = cityInfo[0];
-                final regionName = cityInfo[1];
-                final countryName = cityInfo[2];
-                final longitude = cityInfo[3];
-                final latitude = cityInfo[4];
-                return '$cityName, $regionName, $countryName, $longitude, $latitude';
-              }).toList();
+              if (pattern.isEmpty) {
+                return [];
+              }
+              return await fetchCitySuggestions(pattern);
             },
             itemBuilder: (context, suggestion) {
               return ListTile(
-                title: Text(suggestion),
+                //display the city name, the region and the country
+                title: Text(suggestion[0] +
+                    ', ' +
+                    suggestion[1] +
+                    ', ' +
+                    suggestion[2]),
               );
             },
-            onSuggestionSelected: (suggestion) {     
-                final selectCity = suggestion.split(', ');
-                if (selectCity.length == 5) {
-                  setState(() {
-                    location = suggestion;
-                    latitude = selectCity[3];
-                    longitude = selectCity[4];
-                    location = '$latitude $longitude';
-                  });
-              }
+            onSuggestionSelected: (suggestion) {
+              setState(() async {
+                location = suggestion[0];
+                region = suggestion[1];
+                country = suggestion[2];
+                latitude = suggestion[3];
+                longitude = suggestion[4];
+
+                CurrentlyTabAPI? currentlyTabAPI =
+                    await fetchWeather(latitude, longitude);
+                temperature =
+                    currentlyTabAPI?.currentWeather!.temperature.toString();
+                weatherCode =
+                    currentlyTabAPI?.currentWeather!.weathercode.toString();
+                windSpeed =
+                    currentlyTabAPI?.currentWeather!.windspeed.toString();
+
+                debugPrint(temperature);
+                debugPrint(weatherCode);
+                debugPrint(windSpeed);
+              });
             },
             textFieldConfiguration: TextFieldConfiguration(
               controller: myController,
@@ -179,7 +225,26 @@ class _MyCustomFormState extends State<WeatherPages> {
                 border: OutlineInputBorder(),
                 labelText: 'Search location...',
               ),
-              onSubmitted: printSearchLocation,
+              onSubmitted: (pattern) async {
+                if (pattern.isEmpty) {
+                  setState(() {
+                    location = '';
+                  });
+                }
+                List<List<Object?>> call = await fetchCitySuggestions(pattern);
+                if (call.isEmpty) {
+                  setState(() {
+                    location = 'City not found';
+                  });
+                } else {
+                  setState(() {
+                    location = call[0][0] as String;
+                    latitude = call[0][3] as double;
+                    longitude = call[0][4] as double;
+                    location = '$latitude $longitude';
+                  });
+                }
+              },
             ),
           ),
           actions: [
@@ -191,9 +256,30 @@ class _MyCustomFormState extends State<WeatherPages> {
         ),
         body: TabBarView(
           children: <Widget>[
-            CurrentlyTab(userLocation: location, textStyle: pageTextStyle),
-            TodayTab(userLocation: location, textStyle: pageTextStyle),
-            WeeklyTab(userLocation: location, textStyle: pageTextStyle),
+            CurrentlyTab(
+                location: location,
+                region: region,
+                country: country,
+                latitude: latitude,
+                longitude: longitude,
+                temperature: temperature,
+                weatherCode: weatherCode,
+                windSpeed: windSpeed,
+                textStyle: pageTextStyle),
+            TodayTab(
+                location: location,
+                region: region,
+                country: country,
+                latitude: latitude,
+                longitude: longitude,
+                textStyle: pageTextStyle),
+            WeeklyTab(
+                location: location,
+                region: region,
+                country: country,
+                latitude: latitude,
+                longitude: longitude,
+                textStyle: pageTextStyle),
           ],
         ),
         bottomNavigationBar: const TabBar(
