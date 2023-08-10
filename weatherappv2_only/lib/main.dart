@@ -6,11 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:auto_size_text/auto_size_text.dart';
 
 import 'package:flutter/material.dart';
-import 'tab/currently_tab_api.dart';
-import 'tab/today_tab_api.dart';
 import 'tab/weather_api.dart';
 
 import 'package:geolocator/geolocator.dart';
+//import 'package:geocoding/geocoding.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 import 'city_retrieve.dart';
@@ -82,33 +81,15 @@ class _MyCustomFormState extends State<WeatherPages> {
     }
   }
 
-  Future<CurrentlyTabAPI?> fetchWeather(
-      double latitude, double longitude) async {
+  Future<WeatherAPI?> fetchWeather(double latitude, double longitude) async {
     final url =
-        'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current_weather=true';
-    //'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&hourly=temperature_2m,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max&current_weather=true&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=${52.520008.toString()}&longitude=${13.404954.toString()}&hourly=temperature_2m,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max&current_weather=true&timezone=auto';
 
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
-      return CurrentlyTabAPI.fromJson(jsonResponse);
-    } else {
-      // Handle error if necessary
-      return null;
-    }
-  }
-
-  Future<TodayTabAPI?> fetchTodayWeather(
-      double latitude, double longitude) async {
-    final url =
-        'https://api.open-meteo.com/v1/forecast?latitude=${latitude.toString()}&longitude=${longitude.toString()}=temperature_2m,weathercode,windspeed_10m&start_date=2023-08-10&end_date=2023-08-10';
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonResponse = json.decode(response.body);
-      return TodayTabAPI.fromJson(jsonResponse);
+      return WeatherAPI.fromJson(jsonResponse);
     } else {
       // Handle error if necessary
       return null;
@@ -129,15 +110,15 @@ class _MyCustomFormState extends State<WeatherPages> {
         ],
       ));
 
-      /* for (int i = 0; i < todayTabAPI!.hourly!.time!.length; i++) {
+      /* for (int i = 0; i < weatherAPI!.hourly!.time!.length; i++) {
       rows.add(Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          /* Text(todayTabAPI.hourly!.time![i].split('T')[1]),
-          Text(todayTabAPI.hourly!.temperature2m![i].toString()),
-          Text(todayTabAPI.hourly!.weathercode![i].toString()),
-          Text(todayTabAPI.hourly!.windspeed10m![i].toString()), */
-          Text('$todayTabAPI.hourly!.time![i].split(\'T\')[1] $todayTabAPI.hourly!.temperature2m![i].toString() $todayTabAPI.hourly!.weathercode![i].toString() $todayTabAPI.hourly!.windspeed10m![i].toString()'),
+          /* Text(weatherAPI.hourly!.time![i].split('T')[1]),
+          Text(weatherAPI.hourly!.temperature2m![i].toString()),
+          Text(weatherAPI.hourly!.weathercode![i].toString()),
+          Text(weatherAPI.hourly!.windspeed10m![i].toString()), */
+          Text('$weatherAPI.hourly!.time![i].split(\'T\')[1] $weatherAPI.hourly!.temperature2m![i].toString() $weatherAPI.hourly!.weathercode![i].toString() $weatherAPI.hourly!.windspeed10m![i].toString()'),
         ],
       )); */
     }
@@ -252,11 +233,11 @@ class _MyCustomFormState extends State<WeatherPages> {
     }
     await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
         .then((Position position) {
-      setState(() =>
-
-          ///longitude = position.longitude.toString(),
-          ///latitude = position.latitude.toString(),
-          geoLocationOutput = longitude.toString() + latitude.toString());
+      setState(() => {
+            longitude = position.longitude,
+            latitude = position.latitude,
+            geoLocationOutput = longitude.toString() + latitude.toString(),
+          });
 
       ///geoLocationOutput = '$longitude.toString() $latitude.toString()',
     }).catchError((e) {
@@ -313,22 +294,11 @@ class _MyCustomFormState extends State<WeatherPages> {
               );
             },
             onSuggestionSelected: (suggestion) async {
-              var results = await Future.wait([
-                  fetchWeather(latitude, longitude),
-                  fetchTodayWeather(latitude, longitude),
-              ]);
+              WeatherAPI? weatherAPI = await fetchWeather(latitude, longitude);
 
-              /* CurrentlyTabAPI? currentlyTabAPI =
-                  await fetchWeather(latitude, longitude);
-              TodayTabAPI? todayTabAPI =
-                  await fetchTodayWeather(latitude, longitude); */
-              
-              CurrentlyTabAPI? currentlyTabAPI = results[0] as CurrentlyTabAPI?;
-              TodayTabAPI? todayTabAPI = results[1] as TodayTabAPI?;
-              double? temperature1 =
-                  currentlyTabAPI!.currentWeather!.temperature;
-              int? weatherCode1 = currentlyTabAPI.currentWeather!.weathercode;
-              double? windSpeed1 = currentlyTabAPI.currentWeather!.windspeed;
+              double? temperature1 = weatherAPI!.currentWeather!.temperature;
+              int? weatherCode1 = weatherAPI.currentWeather!.weathercode;
+              double? windSpeed1 = weatherAPI.currentWeather!.windspeed;
 
               setState(() {
                 location = suggestion[0];
@@ -349,13 +319,13 @@ class _MyCustomFormState extends State<WeatherPages> {
                 debugPrint(timezone);
 
                 for (int i = 0; i < 24; i++) {
-                  String time = todayTabAPI!.hourly!.time![i].split('T')[1];
+                  String time = weatherAPI.hourly!.time![i].split('T')[1];
                   String temperature2m =
-                      todayTabAPI.hourly!.temperature2m![i].toString();
+                      weatherAPI.hourly!.temperature2m![i].toString();
                   String weatherCode = getDescriptionFromValue(
-                      todayTabAPI.hourly!.weathercode![i], weatherDescriptions);
+                      weatherAPI.hourly!.weathercode![i], weatherDescriptions);
                   String windspeed10m =
-                      todayTabAPI.hourly!.windspeed10m![i].toString();
+                      weatherAPI.hourly!.windspeed10m![i].toString();
 
                   hourlyDataList
                       .add([time, temperature2m, weatherCode, windspeed10m]);
