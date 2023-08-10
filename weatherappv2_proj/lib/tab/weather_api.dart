@@ -5,7 +5,7 @@ class WeatherAPI {
   int? utcOffsetSeconds;
   String? timezone;
   String? timezoneAbbreviation;
-  int? elevation;
+  double? elevation;
   CurrentWeather? currentWeather;
   HourlyUnits? hourlyUnits;
   Hourly? hourly;
@@ -169,21 +169,18 @@ class DailyUnits {
   String? weathercode;
   String? temperature2mMax;
   String? temperature2mMin;
-  String? windspeed10mMax;
 
   DailyUnits(
       {this.time,
       this.weathercode,
       this.temperature2mMax,
-      this.temperature2mMin,
-      this.windspeed10mMax});
+      this.temperature2mMin});
 
   DailyUnits.fromJson(Map<String, dynamic> json) {
     time = json['time'];
     weathercode = json['weathercode'];
     temperature2mMax = json['temperature_2m_max'];
     temperature2mMin = json['temperature_2m_min'];
-    windspeed10mMax = json['windspeed_10m_max'];
   }
 
   Map<String, dynamic> toJson() {
@@ -192,7 +189,6 @@ class DailyUnits {
     data['weathercode'] = this.weathercode;
     data['temperature_2m_max'] = this.temperature2mMax;
     data['temperature_2m_min'] = this.temperature2mMin;
-    data['windspeed_10m_max'] = this.windspeed10mMax;
     return data;
   }
 }
@@ -202,21 +198,18 @@ class Daily {
   List<int>? weathercode;
   List<double>? temperature2mMax;
   List<double>? temperature2mMin;
-  List<double>? windspeed10mMax;
 
   Daily(
       {this.time,
       this.weathercode,
       this.temperature2mMax,
-      this.temperature2mMin,
-      this.windspeed10mMax});
+      this.temperature2mMin});
 
   Daily.fromJson(Map<String, dynamic> json) {
     time = json['time'].cast<String>();
     weathercode = json['weathercode'].cast<int>();
     temperature2mMax = json['temperature_2m_max'].cast<double>();
     temperature2mMin = json['temperature_2m_min'].cast<double>();
-    windspeed10mMax = json['windspeed_10m_max'].cast<double>();
   }
 
   Map<String, dynamic> toJson() {
@@ -225,7 +218,6 @@ class Daily {
     data['weathercode'] = this.weathercode;
     data['temperature_2m_max'] = this.temperature2mMax;
     data['temperature_2m_min'] = this.temperature2mMin;
-    data['windspeed_10m_max'] = this.windspeed10mMax;
     return data;
   }
 }

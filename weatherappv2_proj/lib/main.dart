@@ -1,16 +1,16 @@
 ///import 'dart:js_interop';
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import 'package:auto_size_text/auto_size_text.dart';
 
 import 'package:flutter/material.dart';
-import 'tab/currently_tab_api.dart';
-import 'tab/today_tab_api.dart';
 import 'tab/weather_api.dart';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 import 'city_retrieve.dart';
@@ -42,6 +42,7 @@ class WeatherPages extends StatefulWidget {
 class _MyCustomFormState extends State<WeatherPages> {
   final myController = TextEditingController();
 
+  /* First API Call: GeoLocator */
   String location = '';
   double latitude = 0.0;
   double longitude = 0.0;
@@ -50,7 +51,9 @@ class _MyCustomFormState extends State<WeatherPages> {
   String timezone = '';
 
   String geoLocationOutput = '';
+  Position? currentCityGPS;
 
+  /* Second API Call: WeatherForecast API */
   String temperature = '';
   String weatherCode = '';
   String windSpeed = '';
@@ -60,59 +63,64 @@ class _MyCustomFormState extends State<WeatherPages> {
   String windspeed10m = '';
 
   List<List<String>> hourlyDataList = [];
+  List<List<String>> dailyDataList = [];
+
+  /* Error handle */
+  String errMsgNoInternet = "Can't connect to API. Without internet connection";
+  String errMsgWrongParam = "Can't retrieve API data. Wrong parameters passed to API";
 
   Future<List<List<Object?>>> fetchCitySuggestions(String pattern) async {
-    final response = await http.get(Uri.parse(
-        'https://geocoding-api.open-meteo.com/v1/search?name=$pattern&count=10&language=en&format=json'));
+    try {
+      final response = await http.get(Uri.parse(
+          'https://geocoding-api.open-meteo.com/v1/search?name=$pattern&count=10&language=en&format=json'));
 
-    if (response.statusCode == 200) {
-      final cityAPI = CityAPI.fromJson(jsonDecode(response.body));
-      return cityAPI.results!
-          .map((cityInfo) => [
-                cityInfo.name ?? 'N/A',
-                cityInfo.admin1 ?? 'N/A',
-                cityInfo.country ?? 'N/A',
-                cityInfo.longitude,
-                cityInfo.latitude,
-                cityInfo.timezone,
-              ])
-          .toList();
-    } else {
-      return []; // Handle error if necessary
+      if (response.statusCode == 200) {
+        final cityAPI = CityAPI.fromJson(jsonDecode(response.body));
+        return cityAPI.results!
+            .map((cityInfo) => [
+                  cityInfo.name ?? 'N/A',
+                  cityInfo.admin1 ?? 'N/A',
+                  cityInfo.country ?? 'N/A',
+                  cityInfo.longitude,
+                  cityInfo.latitude,
+                  cityInfo.timezone,
+                ])
+            .toList();
+      } else {
+        return []; // Handle error if necessary
+      }
+    } catch (e) {
+      return [];
     }
   }
 
-  Future<CurrentlyTabAPI?> fetchWeather(
-      double latitude, double longitude) async {
+  Future<WeatherAPI?> fetchWeather(double latitude, double longitude) async {
     final url =
-        'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current_weather=true';
-    //'https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&hourly=temperature_2m,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max&current_weather=true&timezone=auto';
+        'https://api.open-meteo.com/v1/forecast?latitude=${latitude.toString()}&longitude=${longitude.toString()}&hourly=temperature_2m,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min&current_weather=true&timezone=auto';
 
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonResponse = json.decode(response.body);
-      return CurrentlyTabAPI.fromJson(jsonResponse);
+      return WeatherAPI.fromJson(jsonResponse);
     } else {
       // Handle error if necessary
       return null;
     }
   }
 
-  Future<TodayTabAPI?> fetchTodayWeather(
-      double latitude, double longitude) async {
-    final url =
-        'https://api.open-meteo.com/v1/forecast?latitude=${latitude.toString()}&longitude=${longitude.toString()}=temperature_2m,weathercode,windspeed_10m&start_date=2023-08-10&end_date=2023-08-10';
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonResponse = json.decode(response.body);
-      return TodayTabAPI.fromJson(jsonResponse);
-    } else {
-      // Handle error if necessary
-      return null;
-    }
+  Future<void> getCityFromLatLng(Position position) async {
+    await placemarkFromCoordinates(getCityFromLatLng
+            currentCityGPS!.latitude, currentCityGPS!.longitude)
+        .then((List<Placemark> placemarks) {
+      Placemark place = placemarks[0];
+      setState(() {
+        //_currentAddress =
+        //    '${place.street}, ${place.subLocality}, ${place.subAdministrativeArea}, ${place.postalCode}';
+      });
+    }).catchError((e) {
+      debugPrint(e);
+    });
   }
 
   List<Row> createRowData(List<List<String>> hourlyDataList) {
@@ -124,22 +132,27 @@ class _MyCustomFormState extends State<WeatherPages> {
         children: [
           Text(hourlyData[0]),
           Text(hourlyData[1]),
-          Text(hourlyData[2]),
+          AutoSizeText(hourlyData[2]),
           Text(hourlyData[3]),
         ],
       ));
+    }
+    return rows;
+  }
 
-      /* for (int i = 0; i < todayTabAPI!.hourly!.time!.length; i++) {
+  List<Row> createWeeklyRowData(List<List<String>> dailyDataList) {
+    List<Row> rows = [];
+
+    for (List<String> weeklyData in dailyDataList) {
       rows.add(Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          /* Text(todayTabAPI.hourly!.time![i].split('T')[1]),
-          Text(todayTabAPI.hourly!.temperature2m![i].toString()),
-          Text(todayTabAPI.hourly!.weathercode![i].toString()),
-          Text(todayTabAPI.hourly!.windspeed10m![i].toString()), */
-          Text('$todayTabAPI.hourly!.time![i].split(\'T\')[1] $todayTabAPI.hourly!.temperature2m![i].toString() $todayTabAPI.hourly!.weathercode![i].toString() $todayTabAPI.hourly!.windspeed10m![i].toString()'),
+          Text(weeklyData[0]),
+          Text(weeklyData[1]),
+          Text(weeklyData[2]),
+          AutoSizeText(weeklyData[3]),
         ],
-      )); */
+      ));
     }
     return rows;
   }
@@ -248,6 +261,14 @@ class _MyCustomFormState extends State<WeatherPages> {
         weatherCode = '';
         windSpeed = '';
       });
+      await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high)
+          .then((Position position) {
+        setState(() => currentCityGPS = position);
+        getCityFromLatLng(currentCityGPS!);
+      }).catchError((e) {
+        debugPrint(e);
+      });
       return;
     }
     await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
@@ -255,7 +276,7 @@ class _MyCustomFormState extends State<WeatherPages> {
       setState(() =>
 
           ///longitude = position.longitude.toString(),
-          ///latitude = position.latitude.toString(),
+          //latitude = position.latitude.toString(),
           geoLocationOutput = longitude.toString() + latitude.toString());
 
       ///geoLocationOutput = '$longitude.toString() $latitude.toString()',
@@ -313,23 +334,6 @@ class _MyCustomFormState extends State<WeatherPages> {
               );
             },
             onSuggestionSelected: (suggestion) async {
-              var results = await Future.wait([
-                  fetchWeather(latitude, longitude),
-                  fetchTodayWeather(latitude, longitude),
-              ]);
-
-              /* CurrentlyTabAPI? currentlyTabAPI =
-                  await fetchWeather(latitude, longitude);
-              TodayTabAPI? todayTabAPI =
-                  await fetchTodayWeather(latitude, longitude); */
-              
-              CurrentlyTabAPI? currentlyTabAPI = results[0] as CurrentlyTabAPI?;
-              TodayTabAPI? todayTabAPI = results[1] as TodayTabAPI?;
-              double? temperature1 =
-                  currentlyTabAPI!.currentWeather!.temperature;
-              int? weatherCode1 = currentlyTabAPI.currentWeather!.weathercode;
-              double? windSpeed1 = currentlyTabAPI.currentWeather!.windspeed;
-
               setState(() {
                 location = suggestion[0];
                 region = suggestion[1];
@@ -337,30 +341,58 @@ class _MyCustomFormState extends State<WeatherPages> {
                 latitude = suggestion[3];
                 longitude = suggestion[4];
                 timezone = suggestion[5];
+              });
 
+              WeatherAPI? currentlyTabAPI =
+                  await fetchWeather(suggestion[3], suggestion[4]);
+              double? temperature1 =
+                  currentlyTabAPI?.currentWeather?.temperature;
+              int? weatherCode1 = currentlyTabAPI?.currentWeather?.weathercode;
+              double? windSpeed1 = currentlyTabAPI?.currentWeather?.windspeed;
+
+              setState(() {
                 temperature = '${temperature1.toString()} °C';
                 weatherCode =
                     getDescriptionFromValue(weatherCode1, weatherDescriptions);
-                windSpeed = windSpeed1.toString();
+                windSpeed = '${windSpeed1.toString()} km/h';
 
-                debugPrint(temperature);
-                debugPrint(weatherCode);
-                debugPrint(windSpeed);
-                debugPrint(timezone);
+                debugPrint('Time: $time');
+                debugPrint('Temperature: $temperature2m');
+                debugPrint('Weather Code: $weatherCode');
+                debugPrint('Windspeed: $windspeed10m');
+
+                hourlyDataList.clear();
+                dailyDataList.clear();
 
                 for (int i = 0; i < 24; i++) {
-                  String time = todayTabAPI!.hourly!.time![i].split('T')[1];
+                  String time = currentlyTabAPI!.hourly!.time![i].split('T')[1];
                   String temperature2m =
-                      todayTabAPI.hourly!.temperature2m![i].toString();
+                      currentlyTabAPI.hourly!.temperature2m![i].toString();
                   String weatherCode = getDescriptionFromValue(
-                      todayTabAPI.hourly!.weathercode![i], weatherDescriptions);
+                      currentlyTabAPI.hourly!.weathercode![i],
+                      weatherDescriptions);
                   String windspeed10m =
-                      todayTabAPI.hourly!.windspeed10m![i].toString();
-
+                      currentlyTabAPI.hourly!.windspeed10m![i].toString();
                   hourlyDataList
                       .add([time, temperature2m, weatherCode, windspeed10m]);
                 }
 
+                for (int i = 0; i < 7; i++) {
+                  String time = currentlyTabAPI!.daily!.time![i].split('T')[0];
+                  String temperature2mMax =
+                      currentlyTabAPI.daily!.temperature2mMax![i].toString();
+                  String temperature2mMin =
+                      currentlyTabAPI.daily!.temperature2mMin![i].toString();
+                  String weatherCode = getDescriptionFromValue(
+                      currentlyTabAPI.daily!.weathercode![i],
+                      weatherDescriptions);
+                  dailyDataList.add([
+                    time,
+                    temperature2mMax,
+                    temperature2mMin,
+                    weatherCode,
+                  ]);
+                }
                 for (List<String> hourlyData in hourlyDataList) {
                   String time = hourlyData[0];
                   String temperature2m = hourlyData[1];
@@ -419,14 +451,14 @@ class _MyCustomFormState extends State<WeatherPages> {
                 "Currently\n$location\n$region\n$country\n$temperature\n$weatherCode\n$windSpeed",
                 style: pageTextStyle,
                 textAlign: TextAlign.center,
-                maxLines: 6,
+                maxLines: 7,
               ),
             ),
             Center(
               child: SingleChildScrollView(
                 child: Column(children: [
                   AutoSizeText(
-                    "Currently\n$location\n$region\n$country\n$temperature\n$weatherCode\n$windSpeed",
+                    "Currently\n$location\n$region\n$country\n$temperature\n",
                     style: pageTextStyle,
                     textAlign: TextAlign.center,
                     maxLines: 3,
@@ -444,37 +476,20 @@ class _MyCustomFormState extends State<WeatherPages> {
               ), */
             ),
             Center(
-              child: AutoSizeText(
-                "Currently\n$location\n$region\n$country\n",
-                style: pageTextStyle,
-                textAlign: TextAlign.center,
-                maxLines: 6,
+              child: SingleChildScrollView(
+                child: Column(children: [
+                  AutoSizeText(
+                    "Currently\n$location\n$region\n$country\n",
+                    style: pageTextStyle,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                  ),
+                  Column(
+                    children: createWeeklyRowData(dailyDataList),
+                  ),
+                ]),
               ),
             ),
-            /* CurrentlyTab(
-                location: location,
-                region: region,
-                country: country,
-                latitude: latitude,
-                longitude: longitude,
-                temperature: temperature,
-                weatherCode: weatherCode,
-                windSpeed: windSpeed,
-                textStyle: pageTextStyle), */
-            /* TodayTab(
-                location: location,
-                region: region,
-                country: country,
-                latitude: latitude,
-                longitude: longitude,
-                textStyle: pageTextStyle),
-            WeeklyTab(
-                location: location,
-                region: region,
-                country: country,
-                latitude: latitude,
-                longitude: longitude,
-                textStyle: pageTextStyle), */
           ],
         ),
         bottomNavigationBar: const TabBar(
