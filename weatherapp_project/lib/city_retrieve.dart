@@ -28,18 +28,18 @@ class CityAPI {
     if (json['results'] != null) {
       results = <Results>[];
       json['results'].forEach((v) {
-        results!.add(new Results.fromJson(v));
+        results!.add(Results.fromJson(v));
       });
     }
     generationtimeMs = json['generationtime_ms'];
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    if (this.results != null) {
-      data['results'] = this.results!.map((v) => v.toJson()).toList();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    if (results != null) {
+      data['results'] = results!.map((v) => v.toJson()).toList();
     }
-    data['generationtime_ms'] = this.generationtimeMs;
+    data['generationtime_ms'] = generationtimeMs;
     return data;
   }
 }
@@ -69,12 +69,12 @@ class Results {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['name'] = this.name;
-    data['latitude'] = this.latitude;
-    data['longitude'] = this.longitude;
-    data['country'] = this.country;
-    data['admin1'] = this.admin1;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['name'] = name;
+    data['latitude'] = latitude;
+    data['longitude'] = longitude;
+    data['country'] = country;
+    data['admin1'] = admin1;
     return data;
   }
 }

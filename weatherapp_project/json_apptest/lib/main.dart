@@ -94,7 +94,7 @@ class _MyAppState extends State<MyApp> {
                   itemBuilder: (context, index) {
                     return ListTile(
                       title: Text(infoCities[index][0]),
-                      subtitle: Text(infoCities[index][1] + ', ' + infoCities[index][2]),
+                      subtitle: Text('${infoCities[index][1]}, ${infoCities[index][2]}'),
                     );
                   },
                 );

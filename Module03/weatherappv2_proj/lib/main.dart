@@ -15,6 +15,8 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 import 'city_retrieve.dart';
 
+import 'weekly_chart.dart';
+
 void main() => runApp(const MyWeatherApp());
 
 class MyWeatherApp extends StatelessWidget {
@@ -95,7 +97,7 @@ class _MyCustomFormState extends State<WeatherPages> {
   Future<List<List<Object?>>> fetchCitySuggestions(String pattern) async {
     try {
       final response = await http.get(Uri.parse(
-          'https://geocoding-api.open-meteo.com/v1/search?name=$pattern&count=10&language=en&format=json'));
+          'https://geocoding-api.open-meteo.com/v1/search?name=$pattern&count=5&language=en&format=json'));
 
       if (response.statusCode == 200) {
         final cityAPI = CityAPI.fromJson(jsonDecode(response.body));
@@ -196,30 +198,30 @@ class _MyCustomFormState extends State<WeatherPages> {
     1: 'Mainly clear',
     2: 'Partly cloudy',
     3: 'Overcast',
-    45: 'Fog and depositing rime fog',
-    48: 'Fog and depositing rime fog',
-    51: 'Drizzle: Light intensity',
-    53: 'Drizzle: Moderate intensity',
-    55: 'Drizzle: Dense intensity',
-    56: 'Freezing Drizzle: Light intensity',
-    57: 'Freezing Drizzle: Dense intensity',
-    61: 'Rain: Slight intensity',
-    63: 'Rain: Moderate intensity',
-    65: 'Rain: Heavy intensity',
-    66: 'Freezing Rain: Light intensity',
-    67: 'Freezing Rain: Heavy intensity',
-    71: 'Snow fall: Slight intensity',
-    73: 'Snow fall: Moderate intensity',
-    75: 'Snow fall: Heavy intensity',
+    45: 'Fog',
+    48: 'Fog',
+    51: 'Drizzle',
+    53: 'Drizzle',
+    55: 'Drizzle',
+    56: 'Freezing Drizzle',
+    57: 'Freezing Drizzle:',
+    61: 'Rain',
+    63: 'Rain',
+    65: 'Rain',
+    66: 'Freezing Rain',
+    67: 'Freezing Rain',
+    71: 'Snow fall',
+    73: 'Snow fall',
+    75: 'Snow fall',
     77: 'Snow grains',
-    80: 'Rain showers: Slight intensity',
-    81: 'Rain showers: Moderate intensity',
-    82: 'Rain showers: Violent intensity',
-    85: 'Snow showers: Slight intensity',
-    86: 'Snow showers: Heavy intensity',
-    95: 'Thunderstorm: Slight or moderate',
-    96: 'Thunderstorm with slight hail',
-    99: 'Thunderstorm with heavy hail',
+    80: 'Rain showers',
+    81: 'Rain showers',
+    82: 'Rain showers',
+    85: 'Snow showers',
+    86: 'Snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm',
+    99: 'Thunderstorm',
   };
 
   String getDescriptionFromValue(int? value, Map<int, String> descriptions) {
@@ -315,12 +317,6 @@ class _MyCustomFormState extends State<WeatherPages> {
       color: const Color.fromARGB(255, 0, 0, 0),
     );
 
-    void printSearchLocation(String test) {
-      setState(() {
-        location = myController.text;
-      });
-    }
-
     void printGeoLocation() async {
       setState(() {
         _getCurrentPosition();
@@ -384,7 +380,7 @@ class _MyCustomFormState extends State<WeatherPages> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.amber,
+          backgroundColor: Colors.blue[50],
           title: TypeAheadField(
             suggestionsCallback: (pattern) async {
               if (pattern.isEmpty) {
@@ -395,11 +391,8 @@ class _MyCustomFormState extends State<WeatherPages> {
             itemBuilder: (context, suggestion) {
               return ListTile(
                 //display the city name, the region and the country
-                title: Text(suggestion[0] +
-                    ', ' +
-                    suggestion[1] +
-                    ', ' +
-                    suggestion[2]),
+                title: Text(suggestion[0]),
+                subtitle: Text(suggestion[1] + ', ' + suggestion[2]),
               );
             },
             onSuggestionSelected: (suggestion) async {
@@ -509,45 +502,188 @@ class _MyCustomFormState extends State<WeatherPages> {
           actions: [
             IconButton(
               onPressed: printGeoLocation,
-              icon: const Icon(Icons.send),
+              icon: const Icon(Icons.gps_fixed_sharp),
             ),
           ],
         ),
-        body: TabBarView(
-          children: <Widget>[
-            Center(
-              child: Text(
-                "$location\n$region\n$country\n$temperature\n$weatherCode\n$windSpeed",
-                textAlign: TextAlign.center,
-              ),
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background_sky.jpg'),
+              fit: BoxFit.cover,
             ),
-            Center(
-              child: SingleChildScrollView(
-                child: Column(children: [
-                  AutoSizeText(
-                    "$location\n$region\n$country\n",
-                    textAlign: TextAlign.center,
-                  ),
-                  Column(
-                    children: createRowData(hourlyDataList),
-                  ),
-                ]),
+          ),
+          child: TabBarView(
+            children: <Widget>[
+              Center(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        location,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: MediaQuery.of(context).size.height * 0.035,
+                          color: const Color.fromRGBO(0, 0, 0, 1),
+                        ),
+                      ),
+                      Text(
+                        "$region\n$country\n",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.height * 0.02,
+                          color: const Color.fromRGBO(0, 0, 0, 1),
+                        ),
+                      ),
+                      Text(
+                        temperature,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: MediaQuery.of(context).size.height * 0.08,
+                          color: const Color.fromRGBO(0, 0, 0, 1),
+                        ),
+                      ),
+                      Text(
+                        '$weatherCode\n',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: MediaQuery.of(context).size.height * 0.035,
+                          color: const Color.fromRGBO(0, 0, 0, 1),
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (windSpeed != '')
+                            const Icon(Icons.wind_power_rounded),
+                          Text(
+                            ' $windSpeed',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize:
+                                  MediaQuery.of(context).size.height * 0.02,
+                              color: const Color.fromRGBO(0, 0, 0, 1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]),
               ),
-            ),
-            Center(
-              child: SingleChildScrollView(
-                child: Column(children: [
-                  AutoSizeText(
-                    "$location\n$region\n$country\n",
-                    textAlign: TextAlign.center,
-                  ),
-                  Column(
-                    children: createWeeklyRowData(dailyDataList),
-                  ),
-                ]),
+              Center(
+                child: SingleChildScrollView(
+                  child: Column(children: [
+                    Text(
+                      location,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: MediaQuery.of(context).size.height * 0.035,
+                        color: const Color.fromRGBO(0, 0, 0, 1),
+                      ),
+                    ),
+                    Text(
+                      "$region\n$country\n",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: MediaQuery.of(context).size.height * 0.02,
+                        color: const Color.fromRGBO(0, 0, 0, 1),
+                      ),
+                    ),
+                    ChartExample(hourlyDataList),
+                    //Create a horizontal scrollable list for hourlyDataLista=
+                    Container(
+                      height: MediaQuery.of(context).size.height * 0.4,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: hourlyDataList.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            width: MediaQuery.of(context).size.width * 0.4,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                Center(
+                                  child: Column(children: [
+                                    Text('${hourlyDataList[index][0]}\n'),
+                                    Text(
+                                      hourlyDataList[index][1],
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize:
+                                            MediaQuery.of(context).size.height *
+                                                0.035,
+                                        color: const Color.fromRGBO(0, 0, 0, 1),
+                                      ),
+                                    ),
+                                    Wrap(
+                                      direction: Axis.vertical,
+                                      children: [
+                                        Text(
+                                          '${hourlyDataList[index][2]}\n',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: MediaQuery.of(context)
+                                                    .size
+                                                    .height *
+                                                0.02,
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.wind_power_rounded),
+                                        Text(
+                                          ' ${hourlyDataList[index][3]}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color:  Color.fromRGBO(
+                                                0, 0, 0, 1),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ]),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    //Column(
+                    //  children: createRowData(hourlyDataList),
+                    //),
+                  ]),
+                ),
               ),
-            ),
-          ],
+              Center(
+                child: SingleChildScrollView(
+                  child: Column(children: [
+                    ChartExample(hourlyDataList),
+                    AutoSizeText(
+                      "$location\n$region\n$country\n",
+                      textAlign: TextAlign.center,
+                    ),
+                    Column(
+                      children: createWeeklyRowData(dailyDataList),
+                    ),
+                  ]),
+                ),
+              ),
+            ],
+          ),
         ),
         bottomNavigationBar: const TabBar(
           tabs: <Widget>[

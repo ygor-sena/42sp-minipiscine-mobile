@@ -35,42 +35,42 @@ class WeatherAPI {
     timezoneAbbreviation = json['timezone_abbreviation'];
     elevation = json['elevation'];
     currentWeather = json['current_weather'] != null
-        ? new CurrentWeather.fromJson(json['current_weather'])
+        ? CurrentWeather.fromJson(json['current_weather'])
         : null;
     hourlyUnits = json['hourly_units'] != null
-        ? new HourlyUnits.fromJson(json['hourly_units'])
+        ? HourlyUnits.fromJson(json['hourly_units'])
         : null;
     hourly =
-        json['hourly'] != null ? new Hourly.fromJson(json['hourly']) : null;
+        json['hourly'] != null ? Hourly.fromJson(json['hourly']) : null;
     dailyUnits = json['daily_units'] != null
-        ? new DailyUnits.fromJson(json['daily_units'])
+        ? DailyUnits.fromJson(json['daily_units'])
         : null;
-    daily = json['daily'] != null ? new Daily.fromJson(json['daily']) : null;
+    daily = json['daily'] != null ? Daily.fromJson(json['daily']) : null;
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['latitude'] = this.latitude;
-    data['longitude'] = this.longitude;
-    data['generationtime_ms'] = this.generationtimeMs;
-    data['utc_offset_seconds'] = this.utcOffsetSeconds;
-    data['timezone'] = this.timezone;
-    data['timezone_abbreviation'] = this.timezoneAbbreviation;
-    data['elevation'] = this.elevation;
-    if (this.currentWeather != null) {
-      data['current_weather'] = this.currentWeather!.toJson();
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['latitude'] = latitude;
+    data['longitude'] = longitude;
+    data['generationtime_ms'] = generationtimeMs;
+    data['utc_offset_seconds'] = utcOffsetSeconds;
+    data['timezone'] = timezone;
+    data['timezone_abbreviation'] = timezoneAbbreviation;
+    data['elevation'] = elevation;
+    if (currentWeather != null) {
+      data['current_weather'] = currentWeather!.toJson();
     }
-    if (this.hourlyUnits != null) {
-      data['hourly_units'] = this.hourlyUnits!.toJson();
+    if (hourlyUnits != null) {
+      data['hourly_units'] = hourlyUnits!.toJson();
     }
-    if (this.hourly != null) {
-      data['hourly'] = this.hourly!.toJson();
+    if (hourly != null) {
+      data['hourly'] = hourly!.toJson();
     }
-    if (this.dailyUnits != null) {
-      data['daily_units'] = this.dailyUnits!.toJson();
+    if (dailyUnits != null) {
+      data['daily_units'] = dailyUnits!.toJson();
     }
-    if (this.daily != null) {
-      data['daily'] = this.daily!.toJson();
+    if (daily != null) {
+      data['daily'] = daily!.toJson();
     }
     return data;
   }
@@ -102,13 +102,13 @@ class CurrentWeather {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['temperature'] = this.temperature;
-    data['windspeed'] = this.windspeed;
-    data['winddirection'] = this.winddirection;
-    data['weathercode'] = this.weathercode;
-    data['is_day'] = this.isDay;
-    data['time'] = this.time;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['temperature'] = temperature;
+    data['windspeed'] = windspeed;
+    data['winddirection'] = winddirection;
+    data['weathercode'] = weathercode;
+    data['is_day'] = isDay;
+    data['time'] = time;
     return data;
   }
 }
@@ -130,11 +130,11 @@ class HourlyUnits {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['time'] = this.time;
-    data['temperature_2m'] = this.temperature2m;
-    data['weathercode'] = this.weathercode;
-    data['windspeed_10m'] = this.windspeed10m;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['time'] = time;
+    data['temperature_2m'] = temperature2m;
+    data['weathercode'] = weathercode;
+    data['windspeed_10m'] = windspeed10m;
     return data;
   }
 }
@@ -155,11 +155,11 @@ class Hourly {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['time'] = this.time;
-    data['temperature_2m'] = this.temperature2m;
-    data['weathercode'] = this.weathercode;
-    data['windspeed_10m'] = this.windspeed10m;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['time'] = time;
+    data['temperature_2m'] = temperature2m;
+    data['weathercode'] = weathercode;
+    data['windspeed_10m'] = windspeed10m;
     return data;
   }
 }
@@ -184,11 +184,11 @@ class DailyUnits {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['time'] = this.time;
-    data['weathercode'] = this.weathercode;
-    data['temperature_2m_max'] = this.temperature2mMax;
-    data['temperature_2m_min'] = this.temperature2mMin;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['time'] = time;
+    data['weathercode'] = weathercode;
+    data['temperature_2m_max'] = temperature2mMax;
+    data['temperature_2m_min'] = temperature2mMin;
     return data;
   }
 }
@@ -213,11 +213,11 @@ class Daily {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['time'] = this.time;
-    data['weathercode'] = this.weathercode;
-    data['temperature_2m_max'] = this.temperature2mMax;
-    data['temperature_2m_min'] = this.temperature2mMin;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['time'] = time;
+    data['weathercode'] = weathercode;
+    data['temperature_2m_max'] = temperature2mMax;
+    data['temperature_2m_min'] = temperature2mMin;
     return data;
   }
 }
