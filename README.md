@@ -10,3 +10,10 @@ flutter get
 flutter run
 flutter clean
 ```
+
+When running emulator, press on-time:
+
+```
+r //to reload the app without building it again
+p //to show the layout structure
+```
